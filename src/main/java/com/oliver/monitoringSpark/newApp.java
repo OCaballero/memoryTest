@@ -1,6 +1,7 @@
 package com.oliver.monitoringSpark;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -9,7 +10,6 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.storage.BlockId;
 import org.apache.spark.storage.BlockStatus;
 import org.apache.spark.storage.StorageStatus;
@@ -22,11 +22,13 @@ import scala.collection.JavaConversions;
 public class newApp {
 
 	public static void main(String[] args) {
+		
+		Date date = new Date();
 
 		SparkConf conf = new SparkConf();
-		
-		conf.set("spark.memory.fraction", "1");
-		conf.set("spark.memory.storageFraction", "1");
+
+		conf.set("spark.memory.fraction", "0");
+		conf.set("spark.memory.storageFraction", "0");
 
 		SparkContext sc = new SparkContext("local[4]", "appName", conf);
 		sc.addSparkListener(new CustomSparkListener());
@@ -35,38 +37,42 @@ public class newApp {
 		printMemory();
 
 		List<Integer> list = new ArrayList<Integer>();
-		for (int j = 0; j < 10000000; j++) {
-
+		for (int j = 0; j < 40000000; j++) {
 			list.add(j);
 		}
-		JavaRDD<Integer> rdd = jsc.parallelize(list);
+		
+		JavaRDD<Integer> rdd = jsc.parallelize(list,1000);
+		
 
 		final JavaRDD<String> rdd2 = rdd.map(new Function<Integer, String>() {
 
 			public String call(Integer arg0) throws Exception {
-
 				return arg0 + " id";
 			}
 		});
 
 		rdd2.count();
-
-		printMemory();
-
-		String rdd3 = rdd2.reduce(new Function2<String, String, String>() {
-
-			public String call(String arg0, String arg1) throws Exception {
-				//printMemory();
-
-				return arg0 + arg1;
-			}
-		});
-
-		System.out.println(rdd3);
-
-		printMemory();
-
+//
+//		printMemory();
+//
+//		String rdd3 = rdd2.reduce(new Function2<String, String, String>() {
+//
+//			public String call(String arg0, String arg1) throws Exception {
+//				// printMemory();
+//
+//				return arg0 + arg1;
+//			}
+//		});
+//
+//		System.out.println(rdd3);
+//
+//		printMemory();
+//
 		jsc.close();
+		
+		Date date2 = new Date();
+		
+		System.out.println((date2.getTime()  - date.getTime())/1000);
 
 	}
 
@@ -109,6 +115,8 @@ public class newApp {
 
 			System.out.println("blockManagerId = " + status.blockManagerId());
 
+			
+			
 		}
 
 	}
