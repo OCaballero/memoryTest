@@ -9,9 +9,11 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.storage.BlockId;
 import org.apache.spark.storage.BlockStatus;
+import org.apache.spark.storage.RDDInfo;
 import org.apache.spark.storage.StorageStatus;
 
 import com.oliver.monitoringSpark.listeners.CustomSparkListener;
@@ -22,63 +24,58 @@ import scala.collection.JavaConversions;
 public class newApp {
 
 	public static void main(String[] args) {
-		
+
 		Date date = new Date();
 
 		SparkConf conf = new SparkConf();
 
 		conf.set("spark.memory.fraction", "0");
-		conf.set("spark.memory.storageFraction", "0");
+		conf.set("spark.memory.storageFraction", "1");
 
 		SparkContext sc = new SparkContext("local[4]", "appName", conf);
 		sc.addSparkListener(new CustomSparkListener());
+
 		JavaSparkContext jsc = new JavaSparkContext(sc);
 
 		printMemory();
 
-		List<Integer> list = new ArrayList<Integer>();
-		for (int j = 0; j < 40000000; j++) {
-			list.add(j);
+		List<ClaseTonta> list = new ArrayList<ClaseTonta>();
+		for (int j = 0; j < 400000; j++) {
+			list.add(new ClaseTonta(j));
 		}
-		
-		JavaRDD<Integer> rdd = jsc.parallelize(list,1000);
-		
 
-		final JavaRDD<String> rdd2 = rdd.map(new Function<Integer, String>() {
-
-			public String call(Integer arg0) throws Exception {
-				return arg0 + " id";
-			}
-		});
-
-		rdd2.count();
+		JavaRDD<ClaseTonta> rdd = jsc.parallelize(list, 20000);
+//		List<Tuple2<Integer, Iterable<Integer>>> a = rdd.mapToPair(new PairFunction<ClaseTonta, Integer, Integer>() {
 //
-//		printMemory();
-//
-//		String rdd3 = rdd2.reduce(new Function2<String, String, String>() {
-//
-//			public String call(String arg0, String arg1) throws Exception {
-//				// printMemory();
-//
-//				return arg0 + arg1;
+//			public Tuple2<Integer, Integer> call(ClaseTonta t) throws Exception {
+//				// TODO Auto-generated method stub
+//				return new Tuple2(t.getNum() / 10, t.getNum());
 //			}
-//		});
-//
-//		System.out.println(rdd3);
-//
-//		printMemory();
-//
+//		}).groupByKey().collect();
+		
+//		System.out.println(a);
+
+		 SQLContext sqlContext = new SQLContext(sc);
+		 DataFrame dataframe =
+		 sqlContext.createDataFrame(rdd,ClaseTonta.class);
+		 System.out.println(dataframe.count());
+
+		printMemory();
 		jsc.close();
-		
+
 		Date date2 = new Date();
-		
-		System.out.println((date2.getTime()  - date.getTime())/1000);
+
+		System.out.println((date2.getTime() - date.getTime()) / 1000);
 
 	}
 
 	public static void printMemory() {
 
 		SparkContext sc = SparkContext.getOrCreate();
+
+		for (RDDInfo info : sc.getRDDStorageInfo()) {
+			System.out.println(info);
+		}
 
 		scala.collection.Map<String, Tuple2<Object, Object>> memoryStatus = sc.getExecutorMemoryStatus();
 
@@ -115,8 +112,6 @@ public class newApp {
 
 			System.out.println("blockManagerId = " + status.blockManagerId());
 
-			
-			
 		}
 
 	}
